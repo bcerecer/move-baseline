@@ -3,7 +3,6 @@ module TicketTutorial::Tickets {
     use Std::Vector;
     use AptosFramework::TestCoin::TestCoin;
 	use AptosFramework::Coin;
-	use AptosFramework::Table::{Self, Table};
     use AptosFramework::ManagedCoin;
 
     /* STRUCTS */
@@ -89,7 +88,7 @@ module TicketTutorial::Tickets {
     }
 
     // Lets buyer purchase a ticket from a specific venue and specify the seat they want
-    public fun purchase_ticket(buyer: &signer, venue_owner_addr: address, seat: vector<u8>) acquires Venue, TicketEnvelope {
+    public(script) fun purchase_ticket(buyer: &signer, venue_owner_addr: address, seat: vector<u8>) acquires Venue, TicketEnvelope {
         let buyer_addr = Signer::address_of(buyer);
         let (success, _, price, index) = get_ticket_info(venue_owner_addr, seat);
         // Check if it's a valid seat
@@ -113,7 +112,7 @@ module TicketTutorial::Tickets {
 
     // Since we don't have on chain resources, faucet is a way to simulate having TestCoin resources and give it to accounts
     #[test(venue_owner = @0x1, buyer = @0x2, faucet = @CoreResources)]
-    public fun sender_can_buy_ticket(venue_owner: signer, buyer: signer, faucet: signer) acquires Venue, TicketEnvelope { 	
+    public(script) fun sender_can_buy_ticket(venue_owner: signer, buyer: signer, faucet: signer) acquires Venue, TicketEnvelope { 	
         let venue_owner_addr = Signer::address_of(&venue_owner);
 
         // Initialize the venue
@@ -134,7 +133,7 @@ module TicketTutorial::Tickets {
         assert!(price==15, EINVALID_PRICE);
 
         // Initialize TestCoin module with imposter faucet account
-        ManagedCoin::initialize<TestCoin>(&faucet, 1000000);
+        ManagedCoin::initialize<TestCoin>(&faucet, b"TestCoin", b"TST", 1000000, false);
         // Register faucet, venue_owner and buyer to receive TestCoin (equivalent of signing)
         ManagedCoin::register<TestCoin>(&faucet);
         ManagedCoin::register<TestCoin>(&venue_owner);

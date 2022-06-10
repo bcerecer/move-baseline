@@ -1,10 +1,11 @@
 [package]
-name = "package_name"
-version = "0.0.0"
+name = "tutorials"
+version = "0.1.0"
 
 [addresses]
 AptosFramework = "0x1"
-TicketTutorial = "0xe110"
+TicketTutorial = "0x5c4b100d2252356a98a028793b58a8598447e509321dc0ed756e6e8f819a08ec"
+CoreResources = "0xA550C18"
 
 [dependencies]
-AptosFramework = { git = "https://github.com/aptos-labs/aptos-core.git", subdir="aptos-move/framework/aptos-framework", rev = "0b834fc218648d759e93a7d61a432d0dce6c9946" }
+AptosFramework = { local = "../aptos-core/aptos-move/framework/aptos-framework" }
