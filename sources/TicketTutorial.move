@@ -3,6 +3,7 @@ module TicketTutorial::Tickets {
     use Std::Vector;
     use AptosFramework::TestCoin::TestCoin;
 	use AptosFramework::Coin;
+    #[test_only]
     use AptosFramework::ManagedCoin;
 
     /* STRUCTS */
@@ -51,14 +52,14 @@ module TicketTutorial::Tickets {
         return (false, b"", 0, 0)
     }
 
-    public fun init_venue(venue_owner: &signer, max_seats: u64) {
+    public(script) fun init_venue(venue_owner: &signer, max_seats: u64) {
         // Creates vector of ConcertTicket resource
         let available_tickets = Vector::empty<ConcertTicket>();
         // Create Venue resource and move into venue_owner account
         move_to<Venue>(venue_owner, Venue {available_tickets, max_seats})
     }
 
-    public fun available_ticket_count(venue_owner_addr: address): u64 acquires Venue {
+    public(script) fun available_ticket_count(venue_owner_addr: address): u64 acquires Venue {
         // Gets Venue resource owned by venue_owner_addr from global storage
         let venue = borrow_global<Venue>(venue_owner_addr);
         // returns number of available_tickets
@@ -66,7 +67,7 @@ module TicketTutorial::Tickets {
     }
 
     // No need to check for recipient's signature as function can't be executed without recipient signature
-    public fun create_ticket(venue_owner: &signer, seat: vector<u8>, ticket_code: vector<u8>, price: u64) acquires Venue {
+    public(script) fun create_ticket(venue_owner: &signer, seat: vector<u8>, ticket_code: vector<u8>, price: u64) acquires Venue {
         let venue_owner_addr = Signer::address_of(venue_owner);
         // Verify venue has been created 
         assert!(exists<Venue>(venue_owner_addr), ENO_VENUE);
@@ -81,7 +82,7 @@ module TicketTutorial::Tickets {
     }
 
     // Use this wrapper function to abstain user from getting certain ConcertTicket data
-    public fun get_ticket_price(venue_owner_addr: address, seat:vector<u8>): (bool, u64) acquires Venue {
+    public(script) fun get_ticket_price(venue_owner_addr: address, seat:vector<u8>): (bool, u64) acquires Venue {
         // Use _ for unused values
         let (success, _, price, _) = get_ticket_info(venue_owner_addr, seat);assert!(success, EINVALID_TICKET);
         return (success, price)
@@ -111,7 +112,7 @@ module TicketTutorial::Tickets {
     /* TESTS */
 
     // Since we don't have on chain resources, faucet is a way to simulate having TestCoin resources and give it to accounts
-    #[test(venue_owner = @0x1, buyer = @0x2, faucet = @CoreResources)]
+    #[test(venue_owner = @0x3, buyer = @0x2, faucet = @0x1)]
     public(script) fun sender_can_buy_ticket(venue_owner: signer, buyer: signer, faucet: signer) acquires Venue, TicketEnvelope { 	
         let venue_owner_addr = Signer::address_of(&venue_owner);
 
@@ -133,19 +134,16 @@ module TicketTutorial::Tickets {
         assert!(price==15, EINVALID_PRICE);
 
         // Initialize TestCoin module with imposter faucet account
-        ManagedCoin::initialize<TestCoin>(&faucet, b"TestCoin", b"TST", 1000000, false);
-        // Register faucet, venue_owner and buyer to receive TestCoin (equivalent of signing)
+        ManagedCoin::initialize<TestCoin>(&faucet, b"TestCoin", b"TEST", 6, false);
         ManagedCoin::register<TestCoin>(&faucet);
         ManagedCoin::register<TestCoin>(&venue_owner);
-        ManagedCoin::register<TestCoin>(&buyer);
-        // Fund account to buy ticket
+		ManagedCoin::register<TestCoin>(&buyer);
+		
         let amount = 1000;
         let faucet_addr = Signer::address_of(&faucet);
         let buyer_addr = Signer::address_of(&buyer);
-        // Mint TestCoin to faucet_addr
-         ManagedCoin::mint<TestCoin>(&faucet, faucet_addr, amount);
-        // Transfer TestCoin to buyer_addr
-        Coin::transfer<TestCoin>(faucet, buyer_addr, 100);
+        ManagedCoin::mint<TestCoin>(&faucet, faucet_addr, amount);
+        Coin::transfer<TestCoin>(&faucet, buyer_addr, 100);
         assert!(Coin::balance<TestCoin>(buyer_addr) == 100, EINVALID_BALANCE);
 
         // Buy ticket
@@ -157,11 +155,11 @@ module TicketTutorial::Tickets {
         // Verify venue's TestCoin amount increased according to sold ticket's price 
         assert!(Coin::balance<TestCoin>(venue_owner_addr) == 15, EINVALID_BALANCE);
         // Verify that bought ticket is no longer available
-        assert!(available_ticket_count(venue_owner_addr)==2, EINVALID_TICKET_COUNT);
+	    assert!(available_ticket_count(venue_owner_addr)==2, EINVALID_TICKET_COUNT);
 
-        // Buy a second ticket & ensure balance has changed by 20
-        purchase_ticket(&buyer, venue_owner_addr, b"A26");
-        assert!(Coin::balance<TestCoin>(buyer_addr) == 65, EINVALID_BALANCE);
-        assert!(Coin::balance<TestCoin>(venue_owner_addr) == 35, EINVALID_BALANCE)
+		// buy a second ticket & ensure balance has changed by 20
+		purchase_ticket(&buyer, venue_owner_addr, b"A26");
+		assert!(Coin::balance<TestCoin>(buyer_addr) == 65, EINVALID_BALANCE);
+		assert!(Coin::balance<TestCoin>(venue_owner_addr) == 35, EINVALID_BALANCE);
     }	
 }
